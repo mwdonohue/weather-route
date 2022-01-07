@@ -1,0 +1,94 @@
+/* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+#map {
+    height: 100%;
+    width: 80%;
+    display: inline-block;
+}
+
+#side-panel {
+    height: 100%;
+    width: 20%;
+    display: inline-block;
+}
+
+#map-side-panel-container {
+    height: 100%;
+    width: 100%;
+    display: flex;
+}
+
+/* Optional: Makes the sample page fill the window. */
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+#source-input {
+    width: 100%;
+    height: 1.2rem;
+    margin-top: 0;
+    /* padding: 0.5em; */
+    border: 0;
+    border-bottom: 2px solid gray;
+    font-family: "Roboto", sans-serif;
+    font-size: 18px;
+}
+
+#destination-input {
+    width: 100%;
+    height: 1.2rem;
+    margin-top: 0;
+    margin-bottom: 10px;
+    /* padding: 0.5em; */
+    border: 0;
+    border-bottom: 2px solid gray;
+    font-family: "Roboto", sans-serif;
+    font-size: 18px;
+}
+
+#source-container h2 {
+    font-family: "Roboto", sans-serif;
+    font-size: 24px;
+}
+
+#destination-container h2 {
+    font-family: "Roboto", sans-serif;
+    font-size: 24px;
+}
+
+#source-search-list {
+    max-height: 200px;
+    overflow: hidden;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#source-search-list li {
+    font-family: "Roboto", sans-serif;
+    font-size: 18px;
+}
+
+#source-search-list li:hover {
+    background-color: #e0dede;
+}
+
+#destination-search-list {
+    max-height: 200px;
+    overflow: hidden;
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+#destination-search-list li {
+    font-family: "Roboto", sans-serif;
+    font-size: 18px;
+}
+
+#destination-search-list li:hover {
+    background-color: #e0dede;
+}

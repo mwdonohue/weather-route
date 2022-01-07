@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Weather Route</title>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
+  <link rel="stylesheet" type="text/css" href="./style.css" />
+  <script src="./index.js"></script>
+</head>
+
+<body>
+  <div id="map-side-panel-container">
+    <div id="map"></div>
+    <div id="side-panel">
+      <div id="source-destination-container">
+        <div id="source-container">
+          <h2>Source</h2>
+          <input id="source-input" type="text" placeholder="Enter a source" />
+          <div id="source-search-results-container">
+            <ul id="source-search-list">
+
+            </ul>
+          </div>
+        </div>
+        <div id="destination-container">
+          <h2>Destination</h2>
+          <input id="destination-input" type="text" placeholder="Enter a destination" />
+          <div id="destination-search-results-container">
+            <ul id="destination-search-list">
+
+            </ul>
+          </div>
+        </div>
+      </div>
+      <button id="get-route-button">Get Route</button>
+    </div>
+  </div>
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCHK9T4NwRBUfNjMAfX0M-N6Pw0uPvZdKs&callback=initMap&libraries=&v=weekly"
+    async>
+  </script>
+</body>
+
+</html>
