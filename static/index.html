@@ -6,39 +6,48 @@
   <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
   <link rel="stylesheet" type="text/css" href="./style.css" />
   <script src="./index.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
 </head>
 
 <body>
-  <div id="map-side-panel-container">
-    <div id="map"></div>
-    <div id="side-panel">
-      <div id="source-destination-container">
-        <div id="source-container">
-          <h2>Source</h2>
-          <input id="source-input" type="text" placeholder="Enter a source" />
-          <div id="source-search-results-container">
-            <ul id="source-search-list">
-
-            </ul>
-          </div>
-        </div>
-        <div id="destination-container">
-          <h2>Destination</h2>
-          <input id="destination-input" type="text" placeholder="Enter a destination" />
-          <div id="destination-search-results-container">
-            <ul id="destination-search-list">
-
-            </ul>
-          </div>
-        </div>
+  <div class="container-fluid h-100">
+    <div class="row h-100">
+      <div class="col-lg-9">
+        <div id="map"></div>
+        <script
+          src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCHK9T4NwRBUfNjMAfX0M-N6Pw0uPvZdKs&callback=initMap&libraries=&v=weekly"
+          async>
+          </script>
       </div>
-      <button id="get-route-button">Get Route</button>
+      <div class="col-lg-3 pt-2">
+        <form>
+          <div class="mb-3">
+            <label for="source-input" class="form-label">Source</label>
+            <input id="source-input" list="source-search-list" class="form-control" placeholder="Enter a source" />
+            <datalist id="source-search-list">
+            </datalist>
+          </div>
+
+          <div class="mb-3">
+            <label for="destination-input" class="form-label">Destination</label>
+            <input id="destination-input" list="destination-search-list" class="form-control"
+              placeholder="Enter a destination" />
+            <datalist id="destination-search-list">
+            </datalist>
+          </div>
+          
+          <div class="mb-3">
+            <input type="button" class="btn btn-primary" id="get-route-button" value="Get Route"></input>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
-  <script
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCHK9T4NwRBUfNjMAfX0M-N6Pw0uPvZdKs&callback=initMap&libraries=&v=weekly"
-    async>
-  </script>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+    crossorigin="anonymous"></script>
 </body>
 
 </html>

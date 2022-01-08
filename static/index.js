@@ -22,16 +22,14 @@ function initMap() {
       console.log(data)
       let arrayNodes = []
       for (let i = 0; i < data.length; i++) {
-        let element = document.createElement("li")
-        let textNode = document.createTextNode(data[i].description)
-        element.appendChild(textNode)
+        let element = document.createElement("option")
+        element.setAttribute("value", data[i].description)
         element.addEventListener('click', () => {
           sourceInput.value = data[i].description
           removeAllChildNodes(document.getElementById("source-search-list"))
         })
         arrayNodes.push(element)
       }
-      console.log(arrayNodes)
       document.getElementById("source-search-list").replaceChildren(...arrayNodes)
     })
   })
@@ -43,16 +41,14 @@ function initMap() {
       console.log(data)
       let arrayNodes = []
       for (let i = 0; i < data.length; i++) {
-        let element = document.createElement("li")
-        let textNode = document.createTextNode(data[i].description)
-        element.appendChild(textNode)
+        let element = document.createElement("option")
+        element.setAttribute("value", data[i].description)
         element.addEventListener('click', () => {
           destInput.value = data[i].description
           removeAllChildNodes(document.getElementById("destination-search-list"))
         })
         arrayNodes.push(element)
       }
-      console.log(arrayNodes)
       document.getElementById("destination-search-list").replaceChildren(...arrayNodes)
     })
   })
