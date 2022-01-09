@@ -5,6 +5,23 @@ html, body {
     height: 100%;
 }
 
+/* Mobile */
+@media (max-width: 992px) {
+  #map {
+    height: 60vh;
+  }
+  .search-box {
+    height: 40vh;
+  }
+}
+
+/* Desktop */
+@media (min-width: 992px) {
+  .search-box {
+    padding-left: 0px;  
+  }
+}
+
 span.twitter-typeahead .tt-menu {
     cursor: pointer;
   }
