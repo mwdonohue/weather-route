@@ -60,8 +60,14 @@ func getAutoCompleteSuggestions(rw http.ResponseWriter, r *http.Request) {
 		Types:        maps.AutocompletePlaceTypeAddress,
 		Components:   map[maps.Component][]string{maps.ComponentCountry: {"us"}},
 	})
+
+	resp := make([]string, 0)
+
+	for _, v := range autoCompleteResponse.Predictions {
+		resp = append(resp, v.Description)
+	}
 	if autoCompleteResponse.Predictions != nil {
-		json.NewEncoder(rw).Encode(autoCompleteResponse.Predictions)
+		json.NewEncoder(rw).Encode(resp)
 	} else {
 		json.NewEncoder(rw).Encode([]string{})
 	}
