@@ -15,34 +15,40 @@ function initMap() {
   const sourceInput = document.getElementById("source-input")
   const destInput = document.getElementById("destination-input")
 
-  sourceInput.addEventListener('input', () => {
-    postData('/autoCompleteSuggestions', {
-      placeToAutoComplete: sourceInput.value
-    }).then(resp => resp.json()).then(data => {
-      console.log(data)
-      let arrayNodes = []
-      for (let i = 0; i < data.length; i++) {
-        let element = document.createElement("option")
-        element.setAttribute("value", data[i].description)
-        arrayNodes.push(element)
-      }
-      document.getElementById("source-search-list").replaceChildren(...arrayNodes)
-    })
+  $('#source-input-container #source-input').typeahead({
+    autoselect: true,
+  }, {
+    source: function (query, syncResults, asyncResults) {
+      $.ajax({
+        type: "POST",
+        url: "/autoCompleteSuggestions",
+        data: JSON.stringify({ placeToAutoComplete: query }),
+        dataType: "json",
+        contentType: "application/json"
+      }).done((data, textStatus, request) => {
+        asyncResults(data)
+      }).fail((request, textStatus, errorThrown) => {
+        console.log(errorThrown)
+      })
+    }
   })
 
-  destInput.addEventListener('input', () => {
-    postData('/autoCompleteSuggestions', {
-      placeToAutoComplete: destInput.value
-    }).then(resp => resp.json()).then(data => {
-      console.log(data)
-      let arrayNodes = []
-      for (let i = 0; i < data.length; i++) {
-        let element = document.createElement("option")
-        element.setAttribute("value", data[i].description)
-        arrayNodes.push(element)
-      }
-      document.getElementById("destination-search-list").replaceChildren(...arrayNodes)
-    })
+  $('#destination-input-container #destination-input').typeahead({
+    autoselect: true,
+  }, {
+    source: function (query, syncResults, asyncResults) {
+      $.ajax({
+        type: "POST",
+        url: "/autoCompleteSuggestions",
+        data: JSON.stringify({ placeToAutoComplete: query }),
+        dataType: "json",
+        contentType: "application/json"
+      }).done((data, textStatus, request) => {
+        asyncResults(data)
+      }).fail((request, textStatus, errorThrown) => {
+        console.log(errorThrown)
+      })
+    }
   })
 
   document.getElementById("get-route-button").addEventListener("click", () => {
@@ -74,9 +80,8 @@ function calculateAndDisplayRoute(map, directionsRenderer, origin, dest) {
     postData('/weather', data.routes).then(
       resp => resp.json()
     ).then(weatherpoints => {
-      console.log(weatherpoints)
       for (let i = 0; i < weatherpoints.length; i++) {
-        weatherpoint = weatherpoints[i]
+        let weatherpoint = weatherpoints[i]
         const marker = new google.maps.Marker({
           position: {
             lat: weatherpoint.coordinate.lat,
