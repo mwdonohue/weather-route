@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"log"
 	"time"
 
 	"googlemaps.github.io/maps"
@@ -23,7 +24,7 @@ type Weather struct {
 	Icon          string  `json:"weatherIcon"`
 }
 
-func GetCoords(routes []maps.Route) []CoordTime {
+func GetCoords(routes []maps.Route) ([]CoordTime, error) {
 	retVal := make([]CoordTime, 0)
 
 	currentTime := time.Now().UTC()
@@ -38,8 +39,11 @@ func GetCoords(routes []maps.Route) []CoordTime {
 					for k := 0; k < len(step.Steps); k++ {
 						currentStep := step.Steps[k]
 						polyLine := currentStep.Polyline
-						// TODO: Handle error
-						coords, _ := polyLine.Decode()
+						coords, decodeError := polyLine.Decode()
+						if decodeError != nil {
+							log.Printf("Unable to decode polyline: %s\n", decodeError.Error())
+							return nil, decodeError
+						}
 
 						for _, coord := range coords {
 							retVal = append(retVal, CoordTime{Coord: coord, TimeAtCoord: currentTime})
@@ -48,7 +52,11 @@ func GetCoords(routes []maps.Route) []CoordTime {
 					}
 				} else {
 					polyLine := step.Polyline
-					coords, _ := polyLine.Decode()
+					coords, decodeError := polyLine.Decode()
+					if decodeError != nil {
+						log.Printf("Unable to decode polyline: %s\n", decodeError.Error())
+						return nil, decodeError
+					}
 					for _, coord := range coords {
 						retVal = append(retVal, CoordTime{Coord: coord, TimeAtCoord: currentTime})
 					}
@@ -57,7 +65,7 @@ func GetCoords(routes []maps.Route) []CoordTime {
 			}
 		}
 	}
-	return retVal
+	return retVal, nil
 }
 
 func GetCoordsEveryNMeters(path []CoordTime, distance float64) []CoordTime {

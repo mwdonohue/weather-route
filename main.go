@@ -31,6 +31,7 @@ type RoutePoints struct {
 	Destination string `json:"destination"`
 }
 
+// TODO: Get rid of these globals and replace with dependency injection
 var config Configuration
 var mapClient *maps.Client
 
@@ -39,7 +40,14 @@ func getDirections(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	decoder := json.NewDecoder(r.Body)
 	var routePoints RoutePoints
-	decoder.Decode(&routePoints)
+
+	err := decoder.Decode(&routePoints)
+	if err != nil {
+		log.Printf("Unable to decode directions: %s\n", err.Error())
+		http.Error(rw, "Unable to decode directions", http.StatusBadRequest)
+		return
+	}
+
 	route, _, _ := mapClient.Directions(context.Background(), &maps.DirectionsRequest{
 		Origin:      routePoints.Origin,
 		Destination: routePoints.Destination,
@@ -53,13 +61,25 @@ func getAutoCompleteSuggestions(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	decoder := json.NewDecoder(r.Body)
 	var input PlaceAutocompleteInput
-	decoder.Decode(&input)
-	autoCompleteResponse, _ := mapClient.PlaceAutocomplete(context.Background(), &maps.PlaceAutocompleteRequest{
+	err := decoder.Decode(&input)
+	if err != nil {
+		log.Printf("Unable to decode autocomplete suggestions: %s\n", err.Error())
+		http.Error(rw, "Unable to decode autocomplete suggestions", http.StatusBadRequest)
+		return
+	}
+
+	autoCompleteResponse, autocompleteError := mapClient.PlaceAutocomplete(context.Background(), &maps.PlaceAutocompleteRequest{
 		Input:        input.PlaceToAutoComplete,
 		StrictBounds: false,
 		Types:        maps.AutocompletePlaceTypeAddress,
 		Components:   map[maps.Component][]string{maps.ComponentCountry: {"us"}},
 	})
+
+	if autocompleteError != nil {
+		log.Printf("Unable to use autocomplete client: %s\n", autocompleteError.Error())
+		http.Error(rw, "Unable to use autocomplete client", 500)
+		return
+	}
 
 	resp := make([]string, 0)
 
@@ -79,16 +99,20 @@ func getWeather(rw http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		decoder := json.NewDecoder(r.Body)
-
 		var routes []maps.Route
-
 		err := decoder.Decode(&routes)
-
 		if err != nil {
-			panic(err)
+			log.Printf("Unable to decode routes for weather: %s\n", err.Error())
+			http.Error(rw, "Unable to decode routes", 400)
+			return
 		}
 
-		coords := utils.GetCoords(routes)
+		coords, getCoordsError := utils.GetCoords(routes)
+		if getCoordsError != nil {
+			log.Printf("Unable to retrieve coordinates for the given route")
+			http.Error(rw, "Unable to retrieve coordinates for the given route: %s\n", http.StatusInternalServerError)
+			return
+		}
 		coordsEveryFiveMiles := utils.GetCoordsEveryNMeters(coords, 8046.72)
 		weatherApiWG := sync.WaitGroup{}
 		weatherCoords := make([]utils.CoordinateWeather, 0)
@@ -96,14 +120,37 @@ func getWeather(rw http.ResponseWriter, r *http.Request) {
 			// Get weather data for coordinate
 			weatherApiWG.Add(1)
 			go func(coordTime utils.CoordTime) {
-				weatherForCoord, _ := http.Get("https://api.openweathermap.org/data/2.5/onecall?units=imperial&lat=" +
+				weatherForCoord, weatherAPIError := http.Get("https://api.openweathermap.org/data/2.5/onecall?units=imperial&lat=" +
 					fmt.Sprint(coordTime.Coord.Lat) + "&lon=" +
 					fmt.Sprint(coordTime.Coord.Lng) + "&exclude=current,minutely,daily,alerts&appid=" +
 					config.OpenWeatherAPIKey)
+
+				// Make sure the response returns 200
+				if weatherForCoord.StatusCode != 200 {
+					log.Printf("Unable to retrieve weather data for coordinate: internal API error with code %d\n", weatherForCoord.StatusCode)
+					http.Error(rw, "Unable to retrieve weather data for coordinate: internal API error", http.StatusServiceUnavailable)
+					return
+				}
+
+				if weatherAPIError != nil {
+					log.Printf("Unable to retrieve weather data for coordinate: %s\n", weatherAPIError.Error())
+					http.Error(rw, "Unable to retrieve weather data for a coordinate", http.StatusInternalServerError)
+					weatherApiWG.Done()
+					return
+				}
 				weatherApiWG.Done()
-				body, _ := ioutil.ReadAll(weatherForCoord.Body)
+				body, parseBodyError := ioutil.ReadAll(weatherForCoord.Body)
+				if parseBodyError != nil {
+					log.Printf("Unable to parse the body of the weather for coordinate: %s\n", parseBodyError.Error())
+					http.Error(rw, "Unable to parse the body of hte weather for coordinate", http.StatusInternalServerError)
+					return
+				}
 				var weather map[string]interface{}
-				json.Unmarshal(body, &weather)
+				unmarshallingError := json.Unmarshal(body, &weather)
+				if unmarshallingError != nil {
+					log.Printf("Unable to unmarshall the weather's JSON data for coordinate: %s\n", unmarshallingError.Error())
+					http.Error(rw, "Unable to unmarshall the weather's JSON data for coordinate", http.StatusBadRequest)
+				}
 
 				// Find hourly entry associated with hour in coordTime
 				for _, hourlyEntry := range weather["hourly"].([]interface{}) {
@@ -132,15 +179,27 @@ func getWeather(rw http.ResponseWriter, r *http.Request) {
 
 func init() {
 	err := godotenv.Load()
+	// It's okay if an environment file is not provided...
 	if err != nil {
-		log.Printf("No environment file provided")
+		log.Printf("No environment file provided\n")
 	}
-	config = Configuration{GoogleMapsBackendAPIKey: os.Getenv("MAPS_BACKEND"), OpenWeatherAPIKey: os.Getenv("WEATHER")}
+	// ...but the keys must exist one way or another
+	maps_backend_key, maps_key_present := os.LookupEnv("MAPS_BACKEND")
+	weather_key, weather_key_present := os.LookupEnv("WEATHER")
+	if !(maps_key_present || weather_key_present) {
+		log.Fatal("Maps or weather API key is not present...")
+	}
+	config = Configuration{GoogleMapsBackendAPIKey: maps_backend_key, OpenWeatherAPIKey: weather_key}
 }
 func main() {
 	log.Println("Starting server...")
+	var err error
+	mapClient, err = maps.NewClient(maps.WithAPIKey(config.GoogleMapsBackendAPIKey))
 
-	mapClient, _ = maps.NewClient(maps.WithAPIKey(config.GoogleMapsBackendAPIKey))
+	if err != nil {
+		log.Fatalf("Unable to make map client: %s", err.Error())
+	}
+
 	port := ":" + os.Getenv("PORT")
 
 	if os.Getenv("PORT") == "" {
