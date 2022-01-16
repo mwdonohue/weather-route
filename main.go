@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -23,36 +22,11 @@ type Configuration struct {
 	GoogleMapsBackendAPIKey string
 }
 
-type PlaceAutocompleteInput struct {
-	PlaceToAutoComplete string `json:"placeToAutoComplete"`
-}
-
-type RoutePoints struct {
-	Origin      string `json:"origin"`
-	Destination string `json:"destination"`
-}
-
 // TODO: Get rid of these globals and replace with dependency injection
 var config Configuration
 var mapClient *maps.Client
 
-type DirectionsRetriever interface {
-	Retrieve(routePoints RoutePoints) (routes interface{}, err error)
-}
-
-type DirectionsClient struct {
-	mapClient *maps.Client
-}
-
-func (client DirectionsClient) Retrieve(routePoints RoutePoints) (routes interface{}, err error) {
-	computedRoutes, _, err := client.mapClient.Directions(context.Background(), &maps.DirectionsRequest{Origin: routePoints.Origin, Destination: routePoints.Destination, Mode: maps.TravelModeDriving})
-	if err != nil {
-		return nil, err
-	}
-	return computedRoutes, nil
-}
-
-func getDirections(c *gin.Context, directionsRetriever DirectionsRetriever) {
+func GetDirections(c *gin.Context, directionsRetriever DirectionsRetriever) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("Access-Control-Allow-Headers", "Content-Type")
 
@@ -77,7 +51,7 @@ func getDirections(c *gin.Context, directionsRetriever DirectionsRetriever) {
 	c.JSON(http.StatusOK, gin.H{"routes": route, "travelMode": "DRIVING"})
 }
 
-func getAutoCompleteSuggestions(c *gin.Context) {
+func GetAutoCompleteSuggestions(c *gin.Context, autocompleteRetriever AutoCompleteRetriever) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("Access-Control-Allow-Headers", "Content-Type")
 	var input PlaceAutocompleteInput
@@ -88,28 +62,14 @@ func getAutoCompleteSuggestions(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Unable to decode autocomplete suggestions"})
 		return
 	}
-
-	autoCompleteResponse, autocompleteError := mapClient.PlaceAutocomplete(context.Background(), &maps.PlaceAutocompleteRequest{
-		Input:        input.PlaceToAutoComplete,
-		StrictBounds: false,
-		Types:        maps.AutocompletePlaceTypeAddress,
-		Components:   map[maps.Component][]string{maps.ComponentCountry: {"us"}},
-	})
-
+	autoCompleteResponse, autocompleteError := autocompleteRetriever.Retrieve(input)
 	if autocompleteError != nil {
 		log.Printf("Unable to use autocomplete client: %s\n", autocompleteError.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unable to use autocomplete client"})
 		return
 	}
-
-	resp := make([]string, 0)
-
-	for _, v := range autoCompleteResponse.Predictions {
-		resp = append(resp, v.Description)
-	}
-	if autoCompleteResponse.Predictions != nil {
-		// json.NewEncoder(rw).Encode(resp)
-		c.JSON(http.StatusOK, resp)
+	if autoCompleteResponse != nil {
+		c.JSON(http.StatusOK, autoCompleteResponse)
 	} else {
 		c.JSON(http.StatusNoContent, []string{})
 	}
@@ -225,11 +185,15 @@ func main() {
 
 	serv := gin.Default()
 	serv.POST("/weather", getWeather)
-	serv.POST("/autoCompleteSuggestions", getAutoCompleteSuggestions)
+
+	autocompleteClient := &AutoCompleteClient{mapClient: mapClient}
+	serv.POST("/autoCompleteSuggestions", func(c *gin.Context) {
+		GetAutoCompleteSuggestions(c, autocompleteClient)
+	})
 
 	directionsClient := &DirectionsClient{mapClient: mapClient}
 	serv.POST("/directions", func(c *gin.Context) {
-		getDirections(c, directionsClient)
+		GetDirections(c, directionsClient)
 	})
 
 	serv.StaticFS("/", http.Dir("./static"))
