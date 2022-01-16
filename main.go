@@ -1,16 +1,9 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"sync"
-	"time"
-
-	"weather-route/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -22,9 +15,7 @@ type Configuration struct {
 	GoogleMapsBackendAPIKey string
 }
 
-// TODO: Get rid of these globals and replace with dependency injection
 var config Configuration
-var mapClient *maps.Client
 
 func GetDirections(c *gin.Context, directionsRetriever DirectionsRetriever) {
 	c.Header("Access-Control-Allow-Origin", "*")
@@ -75,7 +66,7 @@ func GetAutoCompleteSuggestions(c *gin.Context, autocompleteRetriever AutoComple
 	}
 }
 
-func getWeather(c *gin.Context) {
+func GetWeather(c *gin.Context, weatherRetriever WeatherRetriever) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("Access-Control-Allow-Headers", "Content-Type")
 	var routes []maps.Route
@@ -86,71 +77,14 @@ func getWeather(c *gin.Context) {
 		return
 	}
 
-	coords, getCoordsError := utils.GetCoords(routes)
-	if getCoordsError != nil {
-		log.Printf("Unable to retrieve coordinates for the given route")
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unabel to retrieve coordinates for the given route"})
+	weatherCoords, err := weatherRetriever.Retrieve(routes)
+
+	if err != nil {
+		log.Printf("Unable to retrieve weather information: %s\n", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unable to retrieve weather information"})
 		return
 	}
-	coordsEveryFiveMiles := utils.GetCoordsEveryNMeters(coords, 8046.72)
-	weatherApiWG := sync.WaitGroup{}
-	weatherCoords := make([]utils.CoordinateWeather, 0)
-	for _, coordTime := range coordsEveryFiveMiles {
-		// Get weather data for coordinate
-		weatherApiWG.Add(1)
-		go func(coordTime utils.CoordTime) {
-			weatherForCoord, weatherAPIError := http.Get("https://api.openweathermap.org/data/2.5/onecall?units=imperial&lat=" +
-				fmt.Sprint(coordTime.Coord.Lat) + "&lon=" +
-				fmt.Sprint(coordTime.Coord.Lng) + "&exclude=current,minutely,daily,alerts&appid=" +
-				config.OpenWeatherAPIKey)
 
-			// Make sure the response returns 200
-			if weatherForCoord.StatusCode != 200 {
-				log.Printf("Unable to retrieve weather data for coordinate: internal API error with code %d\n", weatherForCoord.StatusCode)
-				c.JSON(http.StatusServiceUnavailable, gin.H{"message": "Unable to retrieve weather data for coordiante: internal API error"})
-				return
-			}
-
-			if weatherAPIError != nil {
-				log.Printf("Unable to retrieve weather data for coordinate: %s\n", weatherAPIError.Error())
-				weatherApiWG.Done()
-				return
-			}
-			weatherApiWG.Done()
-			body, parseBodyError := ioutil.ReadAll(weatherForCoord.Body)
-			if parseBodyError != nil {
-				log.Printf("Unable to parse the body of the weather for coordinate: %s\n", parseBodyError.Error())
-				c.JSON(http.StatusInternalServerError, gin.H{"message": "Unable to parse the body of the weather for coordinate"})
-				return
-			}
-			var weather map[string]interface{}
-			unmarshallingError := json.Unmarshal(body, &weather)
-			if unmarshallingError != nil {
-				log.Printf("Unable to unmarshall the weather's JSON data for coordinate: %s\n", unmarshallingError.Error())
-				c.JSON(http.StatusBadRequest, gin.H{"message": "Unable to marshall the weather's JSON data for coordinate"})
-			}
-
-			// Find hourly entry associated with hour in coordTime
-			for _, hourlyEntry := range weather["hourly"].([]interface{}) {
-				unixTime := time.Unix(int64(hourlyEntry.(map[string]interface{})["dt"].(float64)), 0)
-				unixTime = unixTime.UTC()
-				if unixTime.Hour() == coordTime.TimeAtCoord.Hour() {
-					weatherCoords = append(weatherCoords,
-						utils.CoordinateWeather{
-							Coord: coordTime.Coord,
-							WeatherData: utils.Weather{
-								Temperature:   hourlyEntry.(map[string]interface{})["temp"].(float64),
-								Precipitation: hourlyEntry.(map[string]interface{})["pop"].(float64),
-								Icon:          hourlyEntry.(map[string]interface{})["weather"].([]interface{})[0].(map[string]interface{})["icon"].(string),
-							},
-							Time: coordTime.TimeAtCoord,
-						})
-					break
-				}
-			}
-		}(coordTime)
-	}
-	weatherApiWG.Wait()
 	c.JSON(http.StatusOK, weatherCoords)
 }
 
@@ -170,8 +104,7 @@ func init() {
 }
 func main() {
 	log.Println("Starting server...")
-	var err error
-	mapClient, err = maps.NewClient(maps.WithAPIKey(config.GoogleMapsBackendAPIKey))
+	mapClient, err := maps.NewClient(maps.WithAPIKey(config.GoogleMapsBackendAPIKey))
 
 	if err != nil {
 		log.Fatalf("Unable to make map client: %s", err.Error())
@@ -184,7 +117,11 @@ func main() {
 	}
 
 	serv := gin.Default()
-	serv.POST("/weather", getWeather)
+
+	weatherClient := &WeatherClient{OpenWeatherAPIKey: config.OpenWeatherAPIKey}
+	serv.POST("/weather", func(c *gin.Context) {
+		GetWeather(c, weatherClient)
+	})
 
 	autocompleteClient := &AutoCompleteClient{mapClient: mapClient}
 	serv.POST("/autoCompleteSuggestions", func(c *gin.Context) {
