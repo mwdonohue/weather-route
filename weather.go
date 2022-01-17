@@ -47,7 +47,6 @@ func (client WeatherClient) Retrieve(routes []maps.Route) (weatherCoordinates in
 		return
 	}
 	coordsEveryFiveMiles := getCoordsEveryNMeters(coords, 8046.72)
-	// weatherApiWG := sync.WaitGroup{}
 
 	var weatherApiWG errgroup.Group
 	weatherCoords := make([]CoordinateWeather, 0)
@@ -58,7 +57,7 @@ func (client WeatherClient) Retrieve(routes []maps.Route) (weatherCoordinates in
 			weatherForCoord, weatherAPIError := http.Get("https://api.openweathermap.org/data/2.5/onecall?units=imperial&lat=" +
 				fmt.Sprint(coordTime.Coord.Lat) + "&lon=" +
 				fmt.Sprint(coordTime.Coord.Lng) + "&exclude=current,minutely,daily,alerts&appid=" +
-				config.OpenWeatherAPIKey)
+				client.OpenWeatherAPIKey)
 
 			// Make sure the response returns 200
 			if weatherForCoord.StatusCode != 200 {

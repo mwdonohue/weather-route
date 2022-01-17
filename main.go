@@ -15,8 +15,6 @@ type Configuration struct {
 	GoogleMapsBackendAPIKey string
 }
 
-var config Configuration
-
 func GetDirections(c *gin.Context, directionsRetriever DirectionsRetriever) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("Access-Control-Allow-Headers", "Content-Type")
@@ -88,7 +86,9 @@ func GetWeather(c *gin.Context, weatherRetriever WeatherRetriever) {
 	c.JSON(http.StatusOK, weatherCoords)
 }
 
-func init() {
+func main() {
+	log.Println("Starting server...")
+
 	err := godotenv.Load()
 	// It's okay if an environment file is not provided...
 	if err != nil {
@@ -100,10 +100,7 @@ func init() {
 	if !(maps_key_present || weather_key_present) {
 		log.Fatal("Maps or weather API key is not present...")
 	}
-	config = Configuration{GoogleMapsBackendAPIKey: maps_backend_key, OpenWeatherAPIKey: weather_key}
-}
-func main() {
-	log.Println("Starting server...")
+	config := Configuration{GoogleMapsBackendAPIKey: maps_backend_key, OpenWeatherAPIKey: weather_key}
 	mapClient, err := maps.NewClient(maps.WithAPIKey(config.GoogleMapsBackendAPIKey))
 
 	if err != nil {
