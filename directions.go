@@ -19,7 +19,7 @@ type DirectionsClient struct {
 	mapClient *maps.Client
 }
 
-func (client DirectionsClient) Retrieve(routePoints RoutePoints) (routes interface{}, err error) {
+func (client *DirectionsClient) Retrieve(routePoints RoutePoints) (routes interface{}, err error) {
 	computedRoutes, _, err := client.mapClient.Directions(context.Background(), &maps.DirectionsRequest{Origin: routePoints.Origin, Destination: routePoints.Destination, Mode: maps.TravelModeDriving})
 	if err != nil {
 		return nil, err

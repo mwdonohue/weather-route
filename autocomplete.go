@@ -18,7 +18,7 @@ type AutoCompleteClient struct {
 	mapClient *maps.Client
 }
 
-func (client AutoCompleteClient) Retrieve(autocompleteInput PlaceAutocompleteInput) (response interface{}, err error) {
+func (client *AutoCompleteClient) Retrieve(autocompleteInput PlaceAutocompleteInput) (response interface{}, err error) {
 	autoCompleteResponse, autoCompleteError := client.mapClient.PlaceAutocomplete(context.Background(), &maps.PlaceAutocompleteRequest{
 		Input:        autocompleteInput.PlaceToAutoComplete,
 		StrictBounds: false,

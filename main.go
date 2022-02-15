@@ -4,7 +4,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"googlemaps.github.io/maps"
@@ -67,15 +69,22 @@ func GetAutoCompleteSuggestions(c *gin.Context, autocompleteRetriever AutoComple
 func GetWeather(c *gin.Context, weatherRetriever WeatherRetriever) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Header("Access-Control-Allow-Headers", "Content-Type")
-	var routes []maps.Route
-	err := c.ShouldBindJSON(&routes)
+	var weatherInput WeatherInput
+	err := c.ShouldBindJSON(&weatherInput)
 	if err != nil {
 		log.Printf("Unable to decode routes for weather: %s\n", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Unable to decode routes"})
 		return
 	}
+	parsedTime, pTimeErr := time.Parse("2006-01-02T15:04:05.000Z", weatherInput.DepartureTime)
 
-	weatherCoords, err := weatherRetriever.Retrieve(routes)
+	if pTimeErr != nil {
+		log.Printf("Unable to parse departure time: %s\n", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Unable to decode parse time"})
+		return
+	}
+
+	weatherCoords, err := weatherRetriever.Retrieve(weatherInput, parsedTime)
 
 	if err != nil {
 		log.Printf("Unable to retrieve weather information: %s\n", err.Error())
@@ -84,6 +93,14 @@ func GetWeather(c *gin.Context, weatherRetriever WeatherRetriever) {
 	}
 
 	c.JSON(http.StatusOK, weatherCoords)
+}
+
+func GetServerTime(c *gin.Context, serverTimeRetriever ServerTimeRetriever) {
+	c.Header("Access-Control-Allow-Origin", "*")
+	c.Header("Access-Control-Allow-Headers", "Content-Type")
+	serverTime, _ := serverTimeRetriever.Retrieve()
+
+	c.JSON(http.StatusOK, serverTime)
 }
 
 func main() {
@@ -130,7 +147,14 @@ func main() {
 		GetDirections(c, directionsClient)
 	})
 
-	serv.StaticFS("/", http.Dir("./static"))
+	serverTimeClient := &ServerTimeClient{}
+	serv.GET("/servertime", func(c *gin.Context) {
+		GetServerTime(c, serverTimeClient)
+	})
+
+	// serv.StaticFS("/static", http.Dir("./static"))
+
+	serv.Use(static.Serve("/", static.LocalFile("./static", false)))
 
 	serv.Run(port)
 	log.Println("Listening on port: " + port)
