@@ -15,6 +15,20 @@ function initMap() {
   const sourceInput = document.getElementById("source-input")
   const destInput = document.getElementById("destination-input")
 
+  $.ajax({url: "/servertime"}).done((data, textStatus, request) => {
+    let tempDate = new Date(data)
+    tempDate = new Date(tempDate - (tempDate.getTimezoneOffset() * 60000))
+    tempDate.setSeconds(0);
+    $("#datetime-selector").attr("value", tempDate.toISOString().slice(0, -1));
+    $("#datetime-selector").attr("min", tempDate.toISOString().slice(0, -1));
+
+    let maxDate = new Date(tempDate);
+    maxDate.setHours(tempDate.getHours() + 24);
+    // console.log(tempDate);
+    // console.log(maxDate);
+    $("#datetime-selector").attr("max", maxDate.toISOString().slice(0, -1));
+  })
+
   $('#source-input-container #source-input').typeahead({
     autoselect: true,
   }, {
@@ -77,7 +91,9 @@ function calculateAndDisplayRoute(map, directionsRenderer, origin, dest) {
       newData
     )
 
-    postData('/weather', data.routes).then(
+    let currentDepartureTime = new Date(new Date($("#datetime-selector").val()).toUTCString());
+
+    postData('/weather', {"routes": data.routes, "departureTime": currentDepartureTime.toISOString()}).then(
       resp => resp.json()
     ).then(weatherpoints => {
       for (let i = 0; i < weatherpoints.length; i++) {
@@ -91,21 +107,16 @@ function calculateAndDisplayRoute(map, directionsRenderer, origin, dest) {
           icon: "https://openweathermap.org/img/wn/" + weatherpoint.weatherData.weatherIcon + ".png"
         })
         const window = new google.maps.InfoWindow({
-          content: "Temperature: " + weatherpoint.weatherData.temperature.toString() + "<br>" +
-            "Chance of Precip: " + (100 * weatherpoint.weatherData.precipChance).toString() + "%" + "<br>" +
-            "At: " + (() => {
-              pointTime = new Date(weatherpoint.time)
-              ampm = "AM"
-              totalHours = pointTime.getHours()
-
-              if (totalHours > 12) {
-                totalHours -= 12
-                ampm = "PM"
-              } else if (totalHours == 12) {
-                ampm = "PM"
-              }
-              return totalHours.toString() + " " + ampm
-            })()
+          content: "<b>" + (() => {
+            let tempDate = new Date(weatherpoint.time);
+            let pointTime = ((innerdate) => {
+              innerdate.setSeconds(0);
+              innerdate.setMinutes(0);
+              return innerdate.toLocaleDateString() + " " + innerdate.toLocaleTimeString();
+            })(tempDate)
+            return pointTime;
+          })() + "</b>" + "<br>" + " Temperature: " + weatherpoint.weatherData.temperature.toString() + "<br>" +
+            "Chance of Precip: " + (100 * weatherpoint.weatherData.precipChance).toString()
         })
         marker.addListener("click", () => {
           window.open({

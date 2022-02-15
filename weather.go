@@ -32,16 +32,21 @@ type Weather struct {
 	Icon          string  `json:"weatherIcon"`
 }
 
+type WeatherInput struct {
+	Routes        []maps.Route `json:"routes"`
+	DepartureTime string       `json:"departureTime"`
+}
+
 type WeatherRetriever interface {
-	Retrieve(routes []maps.Route) (weatherCoordinates interface{}, err error)
+	Retrieve(weatherInput WeatherInput, time time.Time) (weatherCoordinates interface{}, err error)
 }
 
 type WeatherClient struct {
 	OpenWeatherAPIKey string
 }
 
-func (client WeatherClient) Retrieve(routes []maps.Route) (weatherCoordinates interface{}, err error) {
-	coords, getCoordsError := getCoords(routes)
+func (client *WeatherClient) Retrieve(weatherInput WeatherInput, passedTime time.Time) (weatherCoordinates interface{}, err error) {
+	coords, getCoordsError := getCoords(weatherInput.Routes, passedTime)
 	if getCoordsError != nil {
 		log.Printf("Unable to retrieve coordinates for the given route")
 		return
@@ -109,10 +114,8 @@ func (client WeatherClient) Retrieve(routes []maps.Route) (weatherCoordinates in
 	return weatherCoords, nil
 }
 
-func getCoords(routes []maps.Route) ([]CoordTime, error) {
+func getCoords(routes []maps.Route, currentTime time.Time) ([]CoordTime, error) {
 	retVal := make([]CoordTime, 0)
-
-	currentTime := time.Now().UTC()
 	if len(routes) > 0 {
 		rte := routes[0]
 
