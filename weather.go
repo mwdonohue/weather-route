@@ -59,10 +59,11 @@ func (client *WeatherClient) Retrieve(weatherInput WeatherInput, passedTime time
 		// Get weather data for coordinate
 		coordTime := tempCoordTime
 		weatherApiWG.Go(func() error {
-			weatherForCoord, weatherAPIError := http.Get("https://api.openweathermap.org/data/2.5/onecall?units=imperial&lat=" +
+			api_url := "https://api.openweathermap.org/data/2.5/onecall?units=imperial&lat=" +
 				fmt.Sprint(coordTime.Coord.Lat) + "&lon=" +
 				fmt.Sprint(coordTime.Coord.Lng) + "&exclude=current,minutely,daily,alerts&appid=" +
-				client.OpenWeatherAPIKey)
+				client.OpenWeatherAPIKey
+			weatherForCoord, weatherAPIError := http.Get(api_url)
 
 			// Make sure the response returns 200
 			if weatherForCoord.StatusCode != 200 {
@@ -86,11 +87,13 @@ func (client *WeatherClient) Retrieve(weatherInput WeatherInput, passedTime time
 				return unmarshallingError
 			}
 
+			fmt.Println(coordTime)
 			// Find hourly entry associated with hour in coordTime
 			for _, hourlyEntry := range weather["hourly"].([]interface{}) {
 				unixTime := time.Unix(int64(hourlyEntry.(map[string]interface{})["dt"].(float64)), 0)
 				unixTime = unixTime.UTC()
-				if unixTime.Hour() == coordTime.TimeAtCoord.Hour() {
+				if unixTime.Hour() == coordTime.TimeAtCoord.Hour() && unixTime.Day() == coordTime.TimeAtCoord.Day() {
+					fmt.Println(hourlyEntry)
 					weatherCoords = append(weatherCoords,
 						CoordinateWeather{
 							Coord: coordTime.Coord,
