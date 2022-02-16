@@ -22,7 +22,6 @@ func (client *AutoCompleteClient) Retrieve(autocompleteInput PlaceAutocompleteIn
 	autoCompleteResponse, autoCompleteError := client.mapClient.PlaceAutocomplete(context.Background(), &maps.PlaceAutocompleteRequest{
 		Input:        autocompleteInput.PlaceToAutoComplete,
 		StrictBounds: false,
-		Types:        maps.AutocompletePlaceTypeAddress,
 		Components:   map[maps.Component][]string{maps.ComponentCountry: {"us"}},
 	})
 	if autoCompleteError != nil {
