@@ -28,6 +28,7 @@ html, body {
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 0.25rem;
   color: #373a3c;
+  background-color: white;
   padding: .375rem .75rem;
   margin: 2px 0 0;
   width: 100%;
