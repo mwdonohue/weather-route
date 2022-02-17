@@ -44,7 +44,7 @@ span.twitter-typeahead .tt-menu {
   z-index: 1000;
   display: none;
   float: left;
-  min-width: 160px;
+  width: 100%;
   padding: 5px 0;
   margin: 2px 0 0;
   font-size: 1rem;
@@ -55,11 +55,13 @@ span.twitter-typeahead .tt-menu {
   background-clip: padding-box;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 span.twitter-typeahead .tt-suggestion {
   display: block;
-  width: 100%;
   padding: 3px 20px;
   clear: both;
   font-weight: normal;
@@ -69,6 +71,10 @@ span.twitter-typeahead .tt-suggestion {
   white-space: nowrap;
   background: none;
   border: 0;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 span.twitter-typeahead .tt-suggestion:focus, .dropdown-item:hover, span.twitter-typeahead .tt-suggestion:hover {
