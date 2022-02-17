@@ -152,8 +152,6 @@ func main() {
 		GetServerTime(c, serverTimeClient)
 	})
 
-	// serv.StaticFS("/static", http.Dir("./static"))
-
 	serv.Use(static.Serve("/", static.LocalFile("./static", false)))
 
 	serv.Run(port)

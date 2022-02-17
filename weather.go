@@ -87,13 +87,11 @@ func (client *WeatherClient) Retrieve(weatherInput WeatherInput, passedTime time
 				return unmarshallingError
 			}
 
-			fmt.Println(coordTime)
 			// Find hourly entry associated with hour in coordTime
 			for _, hourlyEntry := range weather["hourly"].([]interface{}) {
 				unixTime := time.Unix(int64(hourlyEntry.(map[string]interface{})["dt"].(float64)), 0)
 				unixTime = unixTime.UTC()
 				if unixTime.Hour() == coordTime.TimeAtCoord.Hour() && unixTime.Day() == coordTime.TimeAtCoord.Day() {
-					fmt.Println(hourlyEntry)
 					weatherCoords = append(weatherCoords,
 						CoordinateWeather{
 							Coord: coordTime.Coord,
