@@ -862,7 +862,11 @@
                     syncCalled = true;
                     suggestions = (suggestions || []).slice(0, that.limit);
                     rendered = suggestions.length;
-                    that._overwrite(query, suggestions);
+                    // REFER TO https://github.com/reverbdotcom/typeahead.js/commit/79b4f088e713e7d5f5156f5b8054164b87fd89af if this causes issues
+                    // that._overwrite(query, suggestions);
+                    if (suggestions.length) {
+                        that._overwrite(query, suggestions);
+                      }
                     if (rendered < that.limit && that.async) {
                         that.trigger("asyncRequested", query, that.name);
                     }
@@ -872,8 +876,16 @@
                     if (!canceled && rendered < that.limit) {
                         that.cancel = $.noop;
                         var idx = Math.abs(rendered - that.limit);
-                        rendered += idx;
-                        that._append(query, suggestions.slice(0, idx));
+                        // SAME AS ABOVE
+                        // rendered += idx;
+                        // that._append(query, suggestions.slice(0, idx));
+                        if (rendered === 0) {
+                            that._overwrite(query, suggestions.slice(0, that.limit - rendered));
+                          } else {
+                            that._append(query, suggestions.slice(0, that.limit - rendered));
+                          }
+                
+                          rendered += suggestions.length;
                         that.async && that.trigger("asyncReceived", query, that.name);
                     }
                 }
