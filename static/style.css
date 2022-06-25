@@ -114,3 +114,7 @@ span.twitter-typeahead {
 .input-group span.twitter-typeahead .tt-menu {
   top: 2.375rem !important;
 }
+
+.gmap-container {
+  padding-left: 0px;
+}
