@@ -114,6 +114,11 @@ func main() {
 	// ...but the keys must exist one way or another
 	maps_backend_key, maps_key_present := os.LookupEnv("MAPS_BACKEND")
 	weather_key, weather_key_present := os.LookupEnv("WEATHER")
+	debug_mode, _ := os.LookupEnv("GIN_MODE")
+
+	if debug_mode == "release" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	if !(maps_key_present || weather_key_present) {
 		log.Fatal("Maps or weather API key is not present...")
 	}
