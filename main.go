@@ -131,6 +131,7 @@ func main() {
 	}
 
 	serv := gin.Default()
+	serv.SetTrustedProxies(nil)
 
 	weatherClient := &WeatherClient{OpenWeatherAPIKey: config.OpenWeatherAPIKey}
 	serv.POST("/weather", func(c *gin.Context) {
